@@ -1,0 +1,6 @@
+"client_id","client_name","expected_return","investment_amount","investment_duration","risk_appetite"
+"C002","Bob Johnson","10.00","200000.00",7,"Aggressive"
+"C003","Charlie Williams","6.00","150000.00",10,"Conservative"
+"C004","Diana Brown","9.00","120000.00",6,"Moderate"
+"C005","Edward Davis","7.50","180000.00",8,"Moderate"
+"C001","Alice Smith","9.00","120000.00",5,"Moderate"
