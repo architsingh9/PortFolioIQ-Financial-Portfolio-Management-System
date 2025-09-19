@@ -1,125 +1,87 @@
 # **PortFolioIQ–Financial-Portfolio-Management-System**
 
-## **Project Overview**
-PortFolioIQ is a **Financial Portfolio Management System (FPMS)** designed to simplify portfolio management by centralizing static and transactional financial data. Initially implemented **on-premises** using **Talend** for ETL and **PostgreSQL** for data warehousing, the project was later migrated to **Microsoft Azure** for enhanced scalability, automation, and advanced analytics.
+## Overview
 
----
+PortFolioIQ tracks portfolio holdings with SCD Type II change history, computes KPIs, and exposes BI-ready tables. It ships with:
 
-## **Why We Built It**
-Managing financial portfolios is challenging due to:  
+Azure reference implementation (ADF/ADLS/Databricks/Synapse).
 
-- **Scattered Data**: Static (historical) and real-time transactional data are fragmented.  
-- **Complex Risk Management**: Balancing risk and returns requires advanced analytics.  
-- **Lack of Insights**: Investors need tools for trend analysis, performance optimization, and decision-making.  
+Local quick demo (SQLite) so anyone can run it without cloud access.
 
-PortFolioIQ bridges these gaps by delivering a **scalable, data-driven solution** that integrates, transforms, and analyzes financial data efficiently.
+Unit tests for core SCD logic and risk utilities.
 
----
+Pre-commit hooks and CI.
 
-## **Key Features**
-- **On-Premises Implementation**: Built using **Talend** for ETL and **PostgreSQL** for data warehousing.  
-- **Cloud Migration on Azure**:  
-  - **Azure Data Factory** for automated pipelines.  
-  - **Azure Databricks** for data transformation.  
-  - **Azure Synapse Analytics** for OLAP analysis.  
-  - **Power BI** for visualization and insights.  
-- **Advanced Analytics**: OLAP operations for trend analysis, ranking, and performance reporting.  
-- **Historical Tracking**: Implemented **SCD Type 2** for accurate historical data retention.  
+## Architecture
+Phase 1 — Talend + PostgreSQL
+flowchart LR
 
----
+  A[CSV / GitHub] --> B[Talend Jobs]
+  B --> C[PostgreSQL Staging]
+  C --> D[PostgreSQL SCD2 Fact]
+  D --> E[BI: Tableau/Power BI]
 
-## **How We Built It**
+Phase 2 — Azure
+flowchart LR
 
-### **1. On-Premises Implementation**
-- **ETL Pipelines**:  
-   - Developed using **Talend** to automate extraction, transformation, and loading of financial data.  
-   - **Extraction**: Static data (company financials, stock prices) and transactional data (buy/sell orders).  
-   - **Transformation**: Cleaned and normalized data for consistency.  
-   - **Loading**: Processed data stored in **PostgreSQL**.  
+  A[GitHub (raw CSV)] --> B[ADF Copy]
+  B --> C[ADLS Gen2 (raw)]
+  C --> D[Synapse Staging]
+  D --> E[Databricks Validations]
+  E --> F[Synapse: SCD2 MERGE]
+  F --> G[BI: Power BI / Tableau / QuickSight]
 
-**Talend Jobs Created:**  
-- `Company Transfer`  
-- `Price Transfer`  
-- `Client Profile Transfer`  
-- `Portfolio Creation Transfer`  
-- `Portfolio Holding Transfer`  
-- `Return Analytics Transfer`  
-- `Technical Strategy Transfer`  
-- `Time Dimension Transfer`  
+## Data Model
 
----
+Business keys: portfolio_code, symbol
+Attributes: quantity, price
+SCD meta: valid_from, valid_to, is_current
 
-### **2. Cloud Migration to Microsoft Azure**
-To scale the project and automate workflows, we migrated to the Azure cloud using the following services:
+| portfolio\_code | symbol | quantity | price | valid\_from | valid\_to  | is\_current |
+| --------------- | ------ | -------: | ----: | ----------- | ---------- | ----------- |
+| P001            | AAPL   |       10 |   150 | 2024-01-01  | 2024-02-01 | 0           |
+| P001            | AAPL   |       12 |   155 | 2024-02-01  | null       | 1           |
 
-- **Azure Blob Storage**:  
-   - Stored raw and transformed data, ensuring centralized data access.  
 
-- **Azure Data Factory (ADF)**:  
-   - Automated data ingestion from raw sources to storage and triggered transformations in **Databricks**.  
+## Quickstart (Local Demo)
+python -m venv .venv
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
 
-- **Azure Databricks**:  
-   - Cleaned, normalized, and prepared OLAP-ready data using **PySpark**.  
+# Create schema on local demo DB (SQLite)
+python -m portfolioiq.db.init_db_synapse --driver sqlite
 
-- **Azure Synapse Analytics**:  
-   - Performed advanced SQL-based analysis and OLAP operations (roll-up, drill-down, ranking).  
-   - Created a centralized **Lake Database** for querying financial data.  
+# Run ETL: read sample, apply SCD2, load to fact table
+python -m portfolioiq.jobs.run_etl_local --input data/data_sample.csv
 
-- **Power BI**:  
-   - Connected to Synapse to build interactive dashboards for visualizing portfolio performance, returns, and client transactions.  
+# Run tests and lint
+pytest -q
+ruff check . && black --check .
 
-- **Azure DevOps**:  
-   - Implemented CI/CD pipelines for automated deployment, ensuring reliable and seamless updates.  
+## Azure Runbook
 
----
+ADLS Gen2: Create raw and processed containers.
 
-### **3. Database Design**
-We designed a **normalized relational schema** to ensure scalability and efficiency.
+ADF (GitHub → ADLS): Use HTTP linked service to pull from raw.githubusercontent.com to ADLS raw/holdings/<yyyy>/<MM>/<file>.csv.
 
-**Key Tables:**  
-- `Company`: Static company data (ISIN, Ticker, Sector, Market Cap).  
-- `Client_Profile`: Investor information (Name, Expected Returns, Risk Appetite).  
-- `Portfolio_Holding`: Individual investment records.  
-- `Price`: Historical stock prices and dates.  
-- `Return_Analytics`: Portfolio performance metrics.  
-- `Client_Transaction`: Transaction history.  
+ADF (ADLS → Synapse staging): Copy to stg.holdings.
 
----
+Databricks: Run validations, then execute SCD2 MERGE T-SQL against Synapse.
 
-### **4. OLAP Analytics**
-We implemented OLAP operations to derive actionable insights:  
-- **Roll-Up**: Summarize transaction data at higher levels.  
-- **Drill-Down**: Analyze data at finer granularities (e.g., daily performance).  
-- **Slice/Dice**: Filter data for specific portfolios or clients.  
-- **Pivot**: Compare key metrics (returns, risk) across dimensions.  
-- **Ranking**: Identify top-performing portfolios and clients.  
+BI: Point reports to Synapse curated tables (dbo.fact_holdings_scd)
 
----
+## Ingest From GitHub With ADF
 
-## **Technologies Used**
+Source (public): https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path/to/file.csv>
 
-### On-Premises:  
-- **ETL Tool**: Talend  
-- **Database**: PostgreSQL  
+Sink: abfss://raw@<account>.dfs.core.windows.net/holdings/<yyyy>/<MM>/<file>.csv
 
-### Cloud (Azure):  
-- **Storage**: Azure Blob Storage  
-- **Pipeline Automation**: Azure Data Factory  
-- **Data Processing**: Azure Databricks  
-- **Data Warehousing**: Azure Synapse Analytics  
-- **Visualization**: Power BI  
-- **CI/CD**: Azure DevOps  
+ADF assets are provided under infra/ in this repo.
 
----
 
-## **Future Enhancements**
-- Integration with **real-time market APIs** for live data updates.  
-- Implementation of machine learning for predictive portfolio recommendations.  
-- Enhanced reporting and visualizations using **Power BI**.
 
----
-
-## **Project Flow Summary**
+## **Cloud Project Flow Summary**
 
 ```mermaid
 graph TD
