@@ -1,19 +1,30 @@
 ![CI](https://github.com/architsingh9/PortFolioIQ-Financial-Portfolio-Management-System/actions/workflows/ci.yaml/badge.svg)
 
-# **PortFolioIQ–Financial-Portfolio-Management-System**
+# PortFolioIQ — Financial Portfolio Management System
 
-## Overview
+**What we built**  
+A production-style portfolio analytics stack that tracks holdings over time with **Slowly Changing Dimension Type II (SCD2)**, computes core KPIs/risk metrics, and serves clean, BI-ready tables.
 
-PortFolioIQ tracks portfolio holdings with SCD Type II change history, computes KPIs, and exposes BI-ready tables. It ships with:
+**Why we built it**  
+Typical portfolio trackers only show the latest state. Audits, what-if analysis, and regulatory reporting require **history**: when did a position change, what was valid when, and how did exposures evolve? PortFolioIQ keeps a **full change log** and a clear path from raw CSVs → clean fact tables → dashboards.
 
-Azure reference implementation (ADF/ADLS/Databricks/Synapse).
+**What it solves**
+- Reliable **point-in-time** views of portfolios (SCD2 history).
+- **Reproducible** ingestion from GitHub → data lake → warehouse.
+- **Azure reference** implementation (ADF/ADLS/Databricks/Synapse) + a **local demo** (SQLite) anyone can run.
+- Tested SCD logic and lightweight **risk utilities** (returns, vol, Sharpe, Sortino).
 
-Local quick demo (SQLite) so anyone can run it without cloud access.
+---
 
-Unit tests for core SCD logic and risk utilities.
+## Features
 
-Pre-commit hooks and CI.
+- SCD2 fact table for holdings (`valid_from`, `valid_to`, `is_current`).
+- Azure pipelines to copy raw CSVs from GitHub to **ADLS Gen2** and/or **Synapse staging**.
+- Merge logic in Synapse T-SQL and a local SCD2 equivalent in Python.
+- Unit tests and CI; optional pre-commit formatting/linting.
+- Clean repository layout with all CSVs under `data/`.
 
+---
 ## Architecture
 Phase 1 — Talend + PostgreSQL
 
@@ -38,6 +49,16 @@ graph TD
   D --> E["Power BI: Visualization"]
   C -. "CI/CD" .-> F["Azure DevOps Pipelines"]
 ```
+---
+## Tech Stack
+
+Azure: Data Factory, ADLS Gen2, Databricks (optional validations), Synapse Analytics (T-SQL MERGE).
+
+Local: Python 3.10+, SQLite (demo DB).
+
+Python: Pandas, SQLAlchemy, Typer CLI, Pydantic, (optional) PyODBC for Synapse.
+
+DevX: GitHub Actions CI, Ruff + Black, optional pre-commit hooks.
 
 ## Data Model
 
@@ -53,36 +74,85 @@ SCD meta: valid_from, valid_to, is_current
 
 ## Quickstart (Local Demo)
 python -m venv .venv
-source .venv/bin/activate     # Windows: .venv\Scripts\activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+pip install -e .
 cp .env.example .env
 
-# Create schema on local demo DB (SQLite)
+# Create schema in local demo DB (SQLite)
 python -m portfolioiq.db.init_db_synapse --driver sqlite
 
-# Run ETL: read sample, apply SCD2, load to fact table
-python -m portfolioiq.jobs.run_etl_local --input data/data_sample.csv
+# (optional) create a small sample file
+mkdir -p data/holdings/2024/02
+cat > data/holdings/2024/02/holdings_2024-02-01.csv <<'CSV'
+portfolio_code,symbol,quantity,price,asof
+P001,AAPL,10,150,2024-01-01
+P001,AAPL,12,155,2024-02-01
+CSV
 
-# Run tests and lint
-pytest -q
+# Run ETL: read CSV → apply SCD2 → load fact table
+python -m portfolioiq.jobs.run_etl_local --input data/holdings/2024/02/holdings_2024-02-01.csv
+
+# Run tests and lint (use venv python to avoid global/anaconda conflicts)
+python -m pytest -q
 ruff check . && black --check .
 
-## Azure Runbook
+## Azure Runbook (Phase 2)
 
-ADLS Gen2: Create raw and processed containers.
+- ADLS Gen2
 
-ADF (GitHub → ADLS): Use HTTP linked service to pull from raw.githubusercontent.com to ADLS raw/holdings/<yyyy>/<MM>/<file>.csv.
+Create a storage account with a raw filesystem (container).
 
-ADF (ADLS → Synapse staging): Copy to stg.holdings.
+Folder convention: raw/portfolioiq/holdings/<yyyy>/<MM>/....
 
-Databricks: Run validations, then execute SCD2 MERGE T-SQL against Synapse.
+- Data Factory
 
-BI: Point reports to Synapse curated tables (dbo.fact_holdings_scd)
+Import JSON assets from infra/:
 
-## Ingest From GitHub With ADF
+- Linked Services: ls_http_github, ls_adls, ls_synapse_sql.
 
-Source (public): https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path/to/file.csv>
+- Datasets: ds_github_holdings, ds_adls_raw_holdings, ds_synapse_stg_holdings.
 
-Sink: abfss://raw@<account>.dfs.core.windows.net/holdings/<yyyy>/<MM>/<file>.csv
+- Pipelines:
 
-ADF assets are provided under infra/ in this repo.
+copy_github_to_adls (GitHub → ADLS),
+
+copy_github_to_synapse_staging (GitHub → Synapse staging).
+
+- Pipeline parameters (examples):
+
+repo_owner=architsingh9
+
+repo_name=PortFolioIQ-Financial-Portfolio-Management-System
+
+branch=main
+
+file_path=data/holdings/2024/02/holdings_2024-02-01.csv
+
+- Synapse
+
+Run sql/schema_synapse.sql to create stg.holdings, dims, and dbo.fact_holdings_scd.
+
+After data lands in stg.holdings, run sql/scd_type2_merge_synapse.sql.
+
+Point BI to dbo.fact_holdings_scd (or a curated view).
+
+- Databricks (optional)
+
+Notebook validations on ADLS raw/staging.
+
+Trigger SCD2 MERGE or orchestrate via ADF/DevOps.
+
+## Talend (Phase 1 — Legacy Artifacts)
+
+Legacy docs and exports are under docs/Talend Jobs/.
+
+Typical flow: Talend Ingest → Transform/Validate → PostgreSQL staging → SCD2 fact → BI.
+
+Import in Talend Studio via File → Import Items if job archives are present
+
+## KPIs & Risk Utilities
+
+Example KPIs in sql/kpi_queries_synapse.sql (market value, exposure).
+
+Risk utilities in src/portfolioiq/risk_metrics.py: daily returns, annualized vol, Sharpe, Sortino.
