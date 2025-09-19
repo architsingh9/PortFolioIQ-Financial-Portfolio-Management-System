@@ -14,22 +14,28 @@ Pre-commit hooks and CI.
 
 ## Architecture
 Phase 1 — Talend + PostgreSQL
-flowchart LR
 
-  A[CSV / GitHub] --> B[Talend Jobs]
-  B --> C[PostgreSQL Staging]
-  C --> D[PostgreSQL SCD2 Fact]
-  D --> E[BI: Tableau/Power BI]
+```mermaid
+flowchart LR
+  A["CSV / GitHub snapshots"] --> B["Talend: Ingest"]
+  B --> C["Talend: Transform and Validate (tMap, type casts, dedup)"]
+  C --> D["PostgreSQL Staging (stg.holdings)"]
+  D --> E["PostgreSQL SCD2 Fact (fact_holdings_scd)"]
+  E --> F["BI: Power BI / Tableau"]
+  B -. "CI/CD" .-> G["Jenkins / Talend JobServer"]
+
+```
 
 Phase 2 — Azure
-flowchart LR
 
-  A[GitHub (raw CSV)] --> B[ADF Copy]
-  B --> C[ADLS Gen2 (raw)]
-  C --> D[Synapse Staging]
-  D --> E[Databricks Validations]
-  E --> F[Synapse: SCD2 MERGE]
-  F --> G[BI: Power BI / Tableau / QuickSight]
+```mermaid
+graph TD
+  A["Raw Data in Azure Blob Storage"] --> B["Azure Data Factory: Data Ingestion"]
+  B --> C["Azure Databricks: Data Transformation"]
+  C --> D["Azure Synapse Analytics: Data Analysis / SCD2 Merge"]
+  D --> E["Power BI: Visualization"]
+  C -. "CI/CD" .-> F["Azure DevOps Pipelines"]
+```
 
 ## Data Model
 
@@ -78,15 +84,3 @@ Source (public): https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path
 Sink: abfss://raw@<account>.dfs.core.windows.net/holdings/<yyyy>/<MM>/<file>.csv
 
 ADF assets are provided under infra/ in this repo.
-
-
-
-## **Cloud Project Flow Summary**
-
-```mermaid
-graph TD
-    A[Raw Data in Azure Blob Storage] --> B[Azure Data Factory: Data Ingestion]
-    B --> C[Azure Databricks: Data Transformation]
-    C --> D[Azure Synapse Analytics: Data Analysis]
-    D --> E[Power BI: Visualization]
-    C --> F[CI/CD Pipelines via Azure DevOps]
