@@ -6,3 +6,4 @@ pydantic>=2.0.0
 pyodbc>=5.1.0
 azure-storage-blob>=12.19.1
 pyyaml>=6.0.0
+numpy>=1.24.0
