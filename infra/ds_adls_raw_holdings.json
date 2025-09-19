@@ -1,0 +1,20 @@
+{
+  "name": "ds_adls_raw_holdings",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "linkedServiceName": { "referenceName": "ls_adls", "type": "LinkedServiceReference" },
+    "type": "DelimitedText",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem": "raw",
+        "folderPath": "@{pipeline().parameters.output_folder}",
+        "fileName": "@{pipeline().parameters.output_file}"
+      },
+      "columnDelimiter": ",",
+      "quoteChar": "\"",
+      "firstRowAsHeader": true,
+      "encodingName": "utf-8"
+    }
+  }
+}

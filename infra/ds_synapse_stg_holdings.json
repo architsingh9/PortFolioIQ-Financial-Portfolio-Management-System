@@ -1,0 +1,9 @@
+{
+  "name": "ds_synapse_stg_holdings",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "linkedServiceName": { "referenceName": "ls_synapse_sql", "type": "LinkedServiceReference" },
+    "type": "AzureSqlDWTable",
+    "typeProperties": { "table": "stg.holdings" }
+  }
+}

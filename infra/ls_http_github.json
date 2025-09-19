@@ -1,0 +1,12 @@
+{
+  "name": "ls_http_github",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "type": "HttpServer",
+    "typeProperties": {
+      "url": "https://raw.githubusercontent.com",
+      "enableServerCertificateValidation": true,
+      "authenticationType": "Anonymous"
+    }
+  }
+}

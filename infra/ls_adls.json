@@ -1,0 +1,10 @@
+{
+  "name": "ls_adls",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "type": "AzureBlobFS",
+    "typeProperties": {
+      "url": "https://<storage-account>.dfs.core.windows.net"
+    }
+  }
+}

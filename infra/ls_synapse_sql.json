@@ -1,0 +1,10 @@
+{
+  "name": "ls_synapse_sql",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "type": "AzureSqlDW",
+    "typeProperties": {
+      "connectionString": "Data Source=tcp:<your-synapse>.sql.azuresynapse.net;Initial Catalog=<your-db>;User ID=<uid>;Password=<pwd>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+    }
+  }
+}

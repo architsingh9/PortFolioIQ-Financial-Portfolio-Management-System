@@ -1,0 +1,26 @@
+{
+  "name": "copy_github_to_adls",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "parameters": {
+      "repo_owner": { "type": "String" },
+      "repo_name":  { "type": "String" },
+      "branch":     { "type": "String", "defaultValue": "main" },
+      "file_path":  { "type": "String" },
+      "output_folder": { "type": "String", "defaultValue": "portfolioiq/holdings/@{formatDateTime(utcnow(),'yyyy/MM')}" },
+      "output_file":   { "type": "String", "defaultValue": "@{concat('holdings_', formatDateTime(utcnow(),'yyyy-MM-dd'), '.csv')}" }
+    },
+    "activities": [
+      {
+        "name": "Copy GitHub CSV to ADLS",
+        "type": "Copy",
+        "typeProperties": {
+          "source": { "type": "DelimitedTextSource" },
+          "sink":   { "type": "DelimitedTextSink" }
+        },
+        "inputs":  [{ "referenceName": "ds_github_holdings", "type": "DatasetReference" }],
+        "outputs": [{ "referenceName": "ds_adls_raw_holdings", "type": "DatasetReference" }]
+      }
+    ]
+  }
+}

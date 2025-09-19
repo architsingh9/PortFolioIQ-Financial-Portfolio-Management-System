@@ -1,0 +1,13 @@
+{
+  "name": "ds_github_holdings",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "linkedServiceName": { "referenceName": "ls_http_github", "type": "LinkedServiceReference" },
+    "type": "HttpFile",
+    "typeProperties": {
+      "relativeUrl": "@{format('/{0}/{1}/{2}/{3}', pipeline().parameters.repo_owner, pipeline().parameters.repo_name, pipeline().parameters.branch, pipeline().parameters.file_path)}",
+      "requestMethod": "GET",
+      "format": { "type": "TextFormat", "columnDelimiter": ",", "rowDelimiter": "\n", "encodingName": "utf-8" }
+    }
+  }
+}

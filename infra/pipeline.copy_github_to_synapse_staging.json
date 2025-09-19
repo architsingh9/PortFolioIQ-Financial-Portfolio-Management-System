@@ -1,0 +1,24 @@
+{
+  "name": "copy_github_to_synapse_staging",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "parameters": {
+      "repo_owner": { "type": "String" },
+      "repo_name":  { "type": "String" },
+      "branch":     { "type": "String", "defaultValue": "main" },
+      "file_path":  { "type": "String" }
+    },
+    "activities": [
+      {
+        "name": "Copy GitHub → Synapse stg.holdings",
+        "type": "Copy",
+        "typeProperties": {
+          "source": { "type": "DelimitedTextSource" },
+          "sink":   { "type": "SqlDWSink" }
+        },
+        "inputs":  [{ "referenceName": "ds_github_holdings", "type": "DatasetReference" }],
+        "outputs": [{ "referenceName": "ds_synapse_stg_holdings", "type": "DatasetReference" }]
+      }
+    ]
+  }
+}
