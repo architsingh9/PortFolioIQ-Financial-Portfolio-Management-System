@@ -1,3 +1,5 @@
+![CI](https://github.com/architsingh9/PortFolioIQ-Financial-Portfolio-Management-System/actions/workflows/ci.yaml/badge.svg)
+
 # **PortFolioIQ–Financial-Portfolio-Management-System**
 
 ## Overview
