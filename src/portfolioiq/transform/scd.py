@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import pandas as pd
 
-def scd_type2_merge(current_df: pd.DataFrame | None, incoming_df: pd.DataFrame,
-                    keys: list[str], asof_col: str) -> pd.DataFrame:
+
+def scd_type2_merge(
+    current_df: pd.DataFrame | None, incoming_df: pd.DataFrame, keys: list[str], asof_col: str
+) -> pd.DataFrame:
     if current_df is None or current_df.empty:
         df = incoming_df.copy()
         df["valid_from"] = pd.to_datetime(df[asof_col])
@@ -18,8 +21,8 @@ def scd_type2_merge(current_df: pd.DataFrame | None, incoming_df: pd.DataFrame,
     attrs = ["quantity", "price"]
     overlap = inc_keyed.join(cur_curr[attrs], how="inner", rsuffix="_curr")
     changed = overlap[
-        (overlap["quantity"] != overlap["quantity_curr"]) |
-        (overlap["price"]    != overlap["price_curr"])
+        (overlap["quantity"] != overlap["quantity_curr"])
+        | (overlap["price"] != overlap["price_curr"])
     ].reset_index()
 
     if not changed.empty:

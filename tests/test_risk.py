@@ -1,5 +1,7 @@
 import pandas as pd
-from portfolioiq.risk_metrics import daily_returns, annualized_vol, sharpe_ratio, sortino_ratio
+
+from portfolioiq.risk_metrics import annualized_vol, daily_returns, sharpe_ratio, sortino_ratio
+
 
 def test_risk_metrics_smoke():
     nav = pd.Series([100, 101, 100, 102, 103], name="NAV")

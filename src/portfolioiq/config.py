@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 import os
+
+from pydantic import BaseModel
+
 
 class Settings(BaseModel):
     db_url: str = os.getenv("PORTFOLIOIQ_DB_URL", "sqlite:///portfolioiq_demo.sqlite")
@@ -11,5 +13,6 @@ class Settings(BaseModel):
     synapse_uid: str | None = os.getenv("SYNAPSE_UID")
     synapse_pwd: str | None = os.getenv("SYNAPSE_PWD")
     synapse_odbc_dsn: str | None = os.getenv("SYNAPSE_ODBC_DSN")
+
 
 settings = Settings()
