@@ -1,0 +1,4 @@
+# CSV policy: only keep CSVs under data/
+**/*.csv
+!data/
+!data/**
